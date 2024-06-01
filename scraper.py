@@ -5,9 +5,11 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-import re, os, requests, pdfkit
+import re, os, requests, pdfkit, logging, sys
 
 
+logging.basicConfig(filename='app.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 class Scraper:
     def __init__(self):
@@ -16,27 +18,37 @@ class Scraper:
     def get_driver(self):
         options = Options()
         options.add_argument("--start-maximized")
+        options.add_argument("--headless")
         driver = webdriver.Chrome(options=options)
         return driver
     
-    def login(self):
+    def login(self, user):
         user_input = self.driver.find_element(By.ID, "sleUserName")
         pass_input = self.driver.find_element(By.ID, "slePassword")
-        user_input.send_keys("gunsbodyrepair")
-        pass_input.send_keys("MERIMEN1234!")
+        if user == 'gunsbodyrepair':
+            user_input.send_keys("gunsbodyrepair")
+            pass_input.send_keys("MERIMEN1234!")
+        elif user == 'pb_tio':
+            user_input.send_keys("pbs_tio")
+            pass_input.send_keys("aditya2162")
+        elif user == 'tt_tio':
+            user_input.send_keys("bb_tio")
+            pass_input.send_keys("aditya2162")
         pass_input.send_keys(Keys.ENTER)
-        print('Successfully logged in')
 
     def search_data(self, search_value):
         # search page
-        search_input = WebDriverWait(self.driver,timeout=30).until(
+        search_input = WebDriverWait(self.driver,timeout=10).until(
             EC.element_to_be_clickable((By.ID, "SRCH")))
+        search_input.send_keys(Keys.CONTROL + "a")
         search_input.send_keys(search_value)
         search_input.send_keys(Keys.ENTER)
 
         # list of search result
-        search_result = WebDriverWait(self.driver,timeout=30).until(
-            EC.element_to_be_clickable((By.XPATH, '//*[@id="MRMR1"]/td[3]/a')))
+        logging.info(f'searching {search_value}')
+        print(f'searching {search_value}')
+        search_result = WebDriverWait(self.driver,timeout=10).until(
+            EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, search_value)))
         search_result.click()
 
         # dokumen tab
@@ -45,14 +57,25 @@ class Scraper:
         dok_tab.click()
 
         # dokumen list
-        WebDriverWait(self.driver,timeout=30).until(
+        WebDriverWait(self.driver,timeout=10).until(
             EC.presence_of_all_elements_located((By.ID, 'MRMmaintable')))
         print(f'{search_value} docs found!')
+        logging.info(f'{search_value} docs found!')
     
-    def get_files(self, url, search_values):
+    def get_files(self, url, user, search_values):
         self.driver.get(url)
-        self.login()
-        for search_item in search_values:
+        self.login(user)  
+        current_url = self.driver.current_url
+        if current_url == "https://indonesia.merimen.com/claims/index.cfm?skip_browsertest=1&":
+            print('Login failed!')
+            logging.info('Login failed!')
+            self.driver.quit()
+        else:
+            print('Successfully logged in')
+            logging.info('Successfully logged in')         
+        
+        for i, search_item in enumerate(search_values):
+            print(f'Searching {i+1} of {len(search_values)}')
             try:
                 # navigating through pages
                 self.search_data(search_item)
@@ -66,7 +89,8 @@ class Scraper:
                 element_ids = table_element.find_elements(By.PARTIAL_LINK_TEXT, 'Load')
                 # create folder
                 folder_name = search_item.replace(" ", "")
-                os.makedirs(folder_name)
+                path = os.path.join(user, search_item)
+                os.makedirs(path)
 
                 for i in range(len(element_names)):
                     print(f'Downloading {i+1} of {len(element_names)}')
@@ -78,25 +102,39 @@ class Scraper:
                     doc_url = view_url + docid + "&" + token
                     if doc_type == "Load JPG":
                         img = requests.get(doc_url).content
-                        with open(f"{folder_name}/{filename}.jpg", 'wb') as f:
+                        with open(f"{path}/{filename}.jpg", 'wb') as f:
                             f.write(img)
                     elif doc_type == "Load PDF":
                         pdf = requests.get(doc_url).content
-                        with open(f"{folder_name}/{filename}.pdf", 'wb') as f:
+                        with open(f"{path}/{filename}.pdf", 'wb') as f:
                             f.write(pdf)
                     elif doc_type == "Load HTM":
-                        pdfkit.from_url(doc_url, f"{folder_name}/{filename}.pdf")
+                        pdfkit.from_url(doc_url, f"{path}/{filename}.pdf")
             except Exception as e:
+                print(f'Failed for {search_item}')
+                logging.info(f'Failed for {search_item}')
                 print(e)
                 continue
 
 
 if __name__ == "__main__":
     url = "https://indonesia.merimen.com/claims/index.cfm?skip_browsertest=1&"
-    # search_values = ["B 2293 PKW","B 1461 JFA","B 2431 UZS","B 1236 KZW","B 2291 UZR","B 1236 JFF","B 805 FBI","B 1994 WZE"]
-
-    search_values = ["B 2293 PKW","B 1461 JFA","B 2431 UZS"]
-
-    scraper = Scraper()
-    scraper.get_files(url, search_values)
     
+
+    # search_values = ["B 2293 PKW","B 1461 JFA","B 2431 UZS"]
+
+    with open('plat1.txt', 'r') as f:
+        data = f.readlines()
+
+    # check unfinished search
+    search_values = [item.strip().replace(" ", "") for item in data]    
+    unfinished_search = []
+
+    for i in search_values:
+        if os.path.exists(f'results/{i}'):
+            continue
+        else:
+            unfinished_search.append(i)
+    scraper = Scraper()
+    scraper.get_files(url, unfinished_search)
+    # print(unfinished_search)
