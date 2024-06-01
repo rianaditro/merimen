@@ -2,4 +2,9 @@ venv/
 *.jpg
 *.pdf
 *.html
+*.txt
+*.zip
 B*
+gunsbodyrepair/
+pbs_tio/
+bb_tio/
