@@ -30,7 +30,7 @@ class Scraper:
             pass_input.send_keys("MERIMEN1234!")
         elif user == 'pbs_tio':
             user_input.send_keys("pbs_tio")
-            pass_input.send_keys("adtya2162")
+            pass_input.send_keys("aditya2162")
         elif user == 'tt_tio':
             user_input.send_keys("bb_tio")
             pass_input.send_keys("aditya2162")
