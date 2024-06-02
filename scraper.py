@@ -28,9 +28,9 @@ class Scraper:
         if user == 'gunsbodyrepair':
             user_input.send_keys("gunsbodyrepair")
             pass_input.send_keys("MERIMEN1234!")
-        elif user == 'pb_tio':
+        elif user == 'pbs_tio':
             user_input.send_keys("pbs_tio")
-            pass_input.send_keys("aditya2162")
+            pass_input.send_keys("adtya2162")
         elif user == 'tt_tio':
             user_input.send_keys("bb_tio")
             pass_input.send_keys("aditya2162")
@@ -66,7 +66,7 @@ class Scraper:
         self.driver.get(url)
         self.login(user)  
         current_url = self.driver.current_url
-        if current_url == "https://indonesia.merimen.com/claims/index.cfm?skip_browsertest=1&":
+        if "https://indonesia.merimen.com/claims/index.cfm?fusebox=MTRroot&fuseaction=dsp_home" not in current_url:
             print('Login failed!')
             logging.info('Login failed!')
             self.driver.quit()
@@ -74,47 +74,47 @@ class Scraper:
             print('Successfully logged in')
             logging.info('Successfully logged in')         
         
-        for i, search_item in enumerate(search_values):
-            print(f'Searching {i+1} of {len(search_values)}')
-            try:
-                # navigating through pages
-                self.search_data(search_item)
+            for i, search_item in enumerate(search_values):
+                print(f'Searching {i+1} of {len(search_values)}')
+                try:
+                    # navigating through pages
+                    self.search_data(search_item)
 
-                current_url = self.driver.current_url
-                token = re.search(r"corole=.*$", current_url).group(0)
-                view_url = "https://indonesia.merimen.com/claims/index.cfm?fusebox=SVCdoc&fuseaction=dsp_viewersmart&noimgviewer=1&ftype=2&docid="
+                    current_url = self.driver.current_url
+                    token = re.search(r"corole=.*$", current_url).group(0)
+                    view_url = "https://indonesia.merimen.com/claims/index.cfm?fusebox=SVCdoc&fuseaction=dsp_viewersmart&noimgviewer=1&ftype=2&docid="
 
-                table_element = self.driver.find_element(By.ID, 'doclisting')
-                element_names = table_element.find_elements(By.TAG_NAME, 'b')
-                element_ids = table_element.find_elements(By.PARTIAL_LINK_TEXT, 'Load')
-                # create folder
-                folder_name = search_item.replace(" ", "")
-                path = os.path.join(user, search_item)
-                os.makedirs(path)
+                    table_element = self.driver.find_element(By.ID, 'doclisting')
+                    element_names = table_element.find_elements(By.TAG_NAME, 'b')
+                    element_ids = table_element.find_elements(By.PARTIAL_LINK_TEXT, 'Load')
+                    # create folder
+                    folder_name = search_item.replace(" ", "")
+                    path = os.path.join(user, search_item)
+                    os.makedirs(path)
 
-                for i in range(len(element_names)):
-                    print(f'Downloading {i+1} of {len(element_names)}')
-                    # filename start by number+filename
-                    filename = str(i+1)+'_'+element_names[i].text.replace('/', '')
-                    doc_type = element_ids[i].text
-                    docid = element_ids[i].get_attribute('href')
-                    docid = re.search(r"SVCDOCAttView\((\d+)", docid).group(1)
-                    doc_url = view_url + docid + "&" + token
-                    if doc_type == "Load JPG":
-                        img = requests.get(doc_url).content
-                        with open(f"{path}/{filename}.jpg", 'wb') as f:
-                            f.write(img)
-                    elif doc_type == "Load PDF":
-                        pdf = requests.get(doc_url).content
-                        with open(f"{path}/{filename}.pdf", 'wb') as f:
-                            f.write(pdf)
-                    elif doc_type == "Load HTM":
-                        pdfkit.from_url(doc_url, f"{path}/{filename}.pdf")
-            except Exception as e:
-                print(f'Failed for {search_item}')
-                logging.info(f'Failed for {search_item}')
-                print(e)
-                continue
+                    for i in range(len(element_names)):
+                        print(f'Downloading {i+1} of {len(element_names)}')
+                        # filename start by number+filename
+                        filename = str(i+1)+'_'+element_names[i].text.replace('/', '')
+                        doc_type = element_ids[i].text
+                        docid = element_ids[i].get_attribute('href')
+                        docid = re.search(r"SVCDOCAttView\((\d+)", docid).group(1)
+                        doc_url = view_url + docid + "&" + token
+                        if doc_type == "Load JPG":
+                            img = requests.get(doc_url).content
+                            with open(f"{path}/{filename}.jpg", 'wb') as f:
+                                f.write(img)
+                        elif doc_type == "Load PDF":
+                            pdf = requests.get(doc_url).content
+                            with open(f"{path}/{filename}.pdf", 'wb') as f:
+                                f.write(pdf)
+                        elif doc_type == "Load HTM":
+                            pdfkit.from_url(doc_url, f"{path}/{filename}.pdf")
+                except Exception as e:
+                    print(f'Failed for {search_item}')
+                    logging.info(f'Failed for {search_item}')
+                    print(e)
+                    continue
 
 
 if __name__ == "__main__":

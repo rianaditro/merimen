@@ -31,5 +31,5 @@ if __name__ == "__main__":
     scraper = Scraper()
     unfinished_search = check_list(filename, user)
     # print(unfinished_search)
-    # scraper.get_files(url, user, unfinished_search)
+    scraper.get_files(url, user, unfinished_search)
 
