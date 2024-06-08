@@ -4,7 +4,7 @@ venv/
 *.html
 *.txt
 *.zip
-B*
+20*
 gunsbodyrepair/
 pbs_tio/
 bb_tio/
